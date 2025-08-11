@@ -6,9 +6,9 @@ name: Publish KeePassFunctions
 on:
   push:
     paths:
-      # Trigger only when py/toml-files are pushed in the alwaysontop_tooltip directory
-      - 'keepassfunctions/**/*.py'
-      - 'keepassfunctions/**/*.toml'
+      # Trigger only when py/toml-files are pushed
+      - '**/*.py'
+      - '**/*.toml'
 
 permissions:
   contents: read
