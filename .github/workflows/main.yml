@@ -59,7 +59,6 @@ jobs:
 
       - name: Build package from subfolder
         if: steps.should_publish.outputs.publish == 'true'
-        working-directory: ./keepassfunctions
         run: python -m build
 
       - name: Publish to PyPI
@@ -67,4 +66,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-          packages-dir: keepassfunctions/dist
+          packages-dir: dist
