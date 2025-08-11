@@ -78,6 +78,13 @@ def get_credentials( entry_title , return_entry = False , file = None , path = N
         raise ValueError( f"Could not find entry with the given name '{ entry_title }'" )
 
 def send_autotype_sequence( sequence: str, replacements: dict ):
+    """
+    Send an autotype sequence to the active window, replacing placeholders with actual values
+
+    * sequence: The autotype sequence string containing placeholders
+    * replacements: A dictionary containing replacements for placeholders like {USERNAME}, {PASSWORD}, etc
+    """
+
     # Replace placeholders like {USERNAME}, {PASSWORD}, etc.
     for key, value in replacements.items():
         sequence = sequence.replace( key.upper(), value )
@@ -134,7 +141,15 @@ def send_autotype_sequence( sequence: str, replacements: dict ):
     if output:
         send_keys( output, pause = 0.01 )
 
+    replacements.clear()
+    sequence = None
+
 def use_KeePass_sequence( kp_entry ):
+    """ Use KeePass entry to send autotype sequence to active window
+
+    * kp_entry - KeePass entry object containing the autotype sequence and other details
+    """
+
     k = get_credentials( kp_entry, return_entry = True )
     replacements = {
         "{USERNAME}": k.username,
@@ -147,3 +162,6 @@ def use_KeePass_sequence( kp_entry ):
     if not k.autotype_sequence:
         raise ValueError( "Autotype-sequence is missing in KeePass entry." )
     send_autotype_sequence( k.autotype_sequence, replacements )
+
+    k.password = None
+
