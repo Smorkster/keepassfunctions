@@ -7,8 +7,8 @@ on:
   push:
     paths:
       # Trigger only when py/toml-files are pushed
-      - '*.py'
-      - '*.toml'
+      - '**/*.py'
+      - '**/*.toml'
 
 permissions:
   contents: read
