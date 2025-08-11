@@ -19,6 +19,24 @@ SPECIAL_KEYS = {
 MODIFIER_KEYS = {"CTRL", "ALT", "SHIFT", "WIN"}
 MODIFIER_RELEASE = {"CTRLUP", "ALTUP", "SHIFTUP", "WINUP"}
 
+def _get_keepass_password():
+    """
+    Prompt the user for the KeePass database password.
+    Returns the password as a string.
+    """
+    entered_password = dynamic_input(
+        title="KeePass Password",
+        inputs=[ { 'label': 'Enter password to KeePass-database file', 'show': '*' } ]
+    ).get( dictionary = True )
+    
+    keepass_password = list( entered_password.get( 'inputs', {}).values() )[ 0 ]
+
+    if len( keepass_password ) == 0 or entered_password.get( 'button', None ) != 'OK':
+        dynamic_input( "No password", "No password entered.\nExiting" )
+        sys.exit()
+
+    return keepass_password
+
 # Load credentials from KeePass
 def get_credentials( entry_title , return_entry = False , file = None , path = None ):
     """
@@ -35,15 +53,10 @@ def get_credentials( entry_title , return_entry = False , file = None , path = N
     if path == None:
         path = '~'
     keepass_file = os.path.expanduser( os.sep.join( [ path, file ] ) )
-    entered_password = dynamic_input( title = "KeePass Password" , inputs = [ { 'label' : 'Enter password to KeePass-database file' , 'show': '*' } ] ).get( dictionary = True )
-    keepass_password = list( entered_password.get( 'inputs' , {} ).values() )[0]
-
-    if len( keepass_password ) == 0 or entered_password.get( 'button' , None ) != 'OK':
-        dynamic_input( "No password", "No password entered.\nExiting" )
-        sys.exit()
+    entered_password = _get_keepass_password()
 
     try:
-        kp = pykeepass.PyKeePass( keepass_file, password = keepass_password )
+        kp = pykeepass.PyKeePass( keepass_file, password = entered_password )
         pykeepass.PyKeePass( filename = '', )
     except pykeepass.exceptions.CredentialsError as e:
         dynamic_input( "Error when reading", f"Could not read KeePass-database file:\n{ e.args[0] }" )
