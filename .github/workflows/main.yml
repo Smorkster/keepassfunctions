@@ -1,0 +1,70 @@
+# This workflow will upload a Python Package to PyPI when a version bump is detected in pyproject.toml
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+
+name: Publish KeePassFunctions
+
+on:
+  push:
+    paths:
+      # Trigger only when py/toml-files are pushed in the alwaysontop_tooltip directory
+      - 'keepassfunctions/**/*.py'
+      - 'keepassfunctions/**/*.toml'
+
+permissions:
+  contents: read
+
+jobs:
+  release-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Initiate checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install build tools and jq
+        run: |
+          python -m pip install --upgrade pip
+          pip install build jq
+
+      - name: Extract local version from pyproject.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version' keepassfunctions/pyproject.toml | head -1 | cut -d'"' -f2)
+          echo "Detected version in pyproject.toml: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Get latest version on PyPI
+        id: pypi
+        run: |
+          PACKAGE="keepassfunctions"
+          LATEST=$(curl -s https://pypi.org/pypi/$PACKAGE/json | jq -r '.info.version')
+          echo "Latest version on PyPI: $LATEST"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Determine if new version should be published
+        id: should_publish
+        run: |
+          if [ "${{ steps.version.outputs.version }}" != "${{ steps.pypi.outputs.latest }}" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "New version detected."
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged."
+          fi
+
+      - name: Build package from subfolder
+        if: steps.should_publish.outputs.publish == 'true'
+        working-directory: ./keepassfunctions
+        run: python -m build
+
+      - name: Publish to PyPI
+        if: steps.should_publish.outputs.publish == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: keepassfunctions/dist
