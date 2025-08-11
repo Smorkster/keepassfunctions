@@ -164,4 +164,3 @@ def use_KeePass_sequence( kp_entry ):
     send_autotype_sequence( k.autotype_sequence, replacements )
 
     k.password = None
-
