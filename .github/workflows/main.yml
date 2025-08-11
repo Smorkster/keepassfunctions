@@ -34,7 +34,7 @@ jobs:
       - name: Extract local version from pyproject.toml
         id: version
         run: |
-          VERSION=$(grep '^version' keepassfunctions/pyproject.toml | head -1 | cut -d'"' -f2)
+          VERSION=$(grep '^version' pyproject.toml | head -1 | cut -d'"' -f2)
           echo "Detected version in pyproject.toml: $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
