@@ -1,7 +1,7 @@
 [project]
 name = "keepassfunctions"
-version = "1.1"
-description = "A collection of functions to operate with a KeePass-database"
+version = "2.0"
+description = "A minimalistic wrapper to retrieve entries of a KeePass-database"
 authors = [{ name="Smorkster", email="smorkster@gmail.com" }]
 readme = "README.md"
 license = {text = "MIT"}
