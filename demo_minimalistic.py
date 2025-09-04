@@ -16,13 +16,6 @@ db_file = r'C:\Passwords.kdbx'
 try:
     with KeePassFunctions(db_file, with_gui = False) as kp1:
         print(f'Antal poster: {kp1.get_entry_count()}')
-        kp1.entry_exists
-        kp1.get_credentials
-        kp1.get_entry_count
-        kp1.send_autotype_sequence
-        kp1.use_KeePass_sequence
-        kp1.validate_autotype_available
-    
 except Exception as e:
     print(f'Error when accessing database file with context manager\n{e}')
 
