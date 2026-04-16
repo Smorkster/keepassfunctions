@@ -1,206 +1,204 @@
-# KeePass AutoType Helper
+# keepassfunctions
 
-A secure Python wrapper for retrieving credentials from a **KeePass** database and automatically typing them into applications using custom AutoType sequences. This library prioritizes security with controlled access patterns and cleanup of sensitive data.
+`keepassfunctions` is a context-managed wrapper around `pykeepass` for exact-title
+credential lookup and KeePass AutoType execution. It supports console and GUI
+password prompts, exposes only a restricted database proxy, and performs
+best-effort cleanup of sensitive values after use.
 
-## Features
+## Highlights
 
-- **Security-focused design** with restricted access to KeePass database
-- **Context manager support** for automatic resource cleanup
-- **Secure password handling** with automatic memory clearing
-- **GUI and CLI password prompts** via dynamicinputbox
-- **KeePass AutoType support** with placeholders, special keys, delays, and virtual keys, see [KeePass Auto-Type documentation](https://keepass.info/help/base/autotype.html)
-- **Error handling and logging** for robust operation
-- **Controlled database access** through a secure proxy pattern
+- Context manager based database access
+- Exact-title lookup for credentials and entries
+- KeePass AutoType support with placeholders, special keys, delays, and virtual keys
+- Console or GUI password prompt
+- Restricted proxy instead of raw `PyKeePass` access
+- Best-effort cleanup of passwords and replacement values
 
 ## Requirements
 
-Install dependencies via pip:
+- Python 3.10 or newer
+- A KeePass `.kdbx` database
+- Windows is recommended for AutoType because key input is sent with `pywinauto`
+
+## Installation
+
+From this repository:
 
 ```bash
-pip install pykeepass pywinauto dynamicinputbox
+pip install .
 ```
+
+This installs the declared runtime dependencies:
+
+- `dynamicinputbox`
+- `pykeepass`
+- `pywinauto`
 
 ## Quick Start
 
-### Basic Usage
+### Retrieve credentials
 
 ```python
-from keepassfunctions import KeePassFunctions
+from keepassfunctions.keepassfunctions import KeePassFunctions
 
-# Initialize with your database path
-db_path = "~/Pwd_Db.kdbx"  # or full path to your .kdbx file
+db_path = r"C:\Passwords.kdbx"
 
-# Use context manager for secure handling
-with KeePassFunctions(db_path, with_gui=True) as kp:
-    # Get username and password
-    username, password = kp.get_credentials("My Entry Title")
-    
-    # Or auto-type using the entry's AutoType sequence
-    kp.use_KeePass_sequence("My Entry Title")
-```
-
-### GUI vs CLI Mode
-
-```python
-# GUI mode (default) - shows password dialog
-with KeePassFunctions(db_path, with_gui=True) as kp:
-    # Your code here
-    pass
-
-# CLI mode - command line password prompt
-with KeePassFunctions(db_path, with_gui=False) as kp:
-    # Your code here
-    pass
-```
-
-## API Reference
-
-### Core Methods
-
-#### `get_credentials(entry_title: str, return_entry: bool = False) -> tuple`
-Retrieve credentials from a KeePass entry.
-
-- **Parameters:**
-  - `entry_title`: Exact title of the KeePass entry
-  - `return_entry`: If True, returns the full entry object instead of just username/password
-- **Returns:** Tuple of `(username, password)` or full entry object
-- **Raises:** `ValueError` if entry is not found
-
-#### `use_KeePass_sequence(kp_entry: str) -> None`
-Execute the AutoType sequence from a KeePass entry.
-
-- **Parameters:**
-  - `kp_entry`: Title of the entry containing the AutoType sequence
-- **Raises:** `ValueError` if entry is not found or has no AutoType sequence
-
-#### `entry_exists(title: str) -> bool`
-Check if an entry with the given title exists.
-
-#### `get_entry_count() -> int`
-Get the total number of entries in the database.
-
-#### `validate_autotype_available(entry_title: str) -> bool`
-Check if an entry has an AutoType sequence available.
-
-### Advanced Methods
-
-#### `send_autotype_sequence(sequence: str, replacements: dict) -> None`
-Send a custom AutoType sequence with placeholder replacements.
-
-```python
-with KeePassFunctions(db_path) as kp:
+with KeePassFunctions(db_path=db_path, with_gui=False) as kp:
     username, password = kp.get_credentials("My Entry")
-    
-    custom_sequence = "{USERNAME}{TAB}{PASSWORD}{DELAY 1000}{ENTER}"
-    replacements = {
-        '{USERNAME}': username,
-        '{PASSWORD}': password
-    }
-    
-    kp.send_autotype_sequence(custom_sequence, replacements)
+    print(username)
+    print("*" * len(password) if password else "N/A")
 ```
 
-## Security Features
-
-### Controlled Access
-The library uses a secure proxy pattern that restricts access to KeePass database operations:
+### Retrieve the full entry
 
 ```python
-with KeePassFunctions(db_path) as kp:
-    # Only specific operations are allowed through kp.kp proxy
-    entry_count = kp.kp.get_entry_count()
-    exists = kp.kp.validate_entry_exists("My Entry")
-    entry = kp.kp.find_entries_by_title("My Entry")
+from keepassfunctions.keepassfunctions import KeePassFunctions
+
+db_path = r"C:\Passwords.kdbx"
+
+with KeePassFunctions(db_path=db_path, with_gui=True) as kp:
+    entry = kp.get_credentials("My Entry", return_entry=True)
+    print(entry.title)
+    print(entry.username)
+    print(entry.url)
+    print(bool(entry.autotype_sequence))
 ```
 
-### Automatic Cleanup
-- **Context manager required:** All operations must use `with` statement
-- **Automatic password clearing:** Sensitive data is securely overwritten in memory
-- **Resource cleanup:** Database connections and sensitive data are automatically cleaned up
-- **Error handling:** Comprehensive cleanup even during exceptions
+### Execute the KeePass AutoType sequence
 
-### Security Best Practices
-- Database passwords are never stored permanently
-- Sensitive data is cleared from memory after use
-- Limited exposure of KeePass database internals
-- Secure handling of AutoType sequences and replacements
+```python
+from keepassfunctions.keepassfunctions import KeePassFunctions
+
+db_path = r"C:\Passwords.kdbx"
+
+with KeePassFunctions(db_path=db_path, with_gui=False) as kp:
+    kp.use_KeePass_sequence("My Entry")
+```
+
+### Send a custom AutoType sequence
+
+```python
+from keepassfunctions.keepassfunctions import KeePassFunctions
+
+db_path = r"C:\Passwords.kdbx"
+
+with KeePassFunctions(db_path=db_path, with_gui=False) as kp:
+    username, password = kp.get_credentials("My Entry")
+
+    kp.send_autotype_sequence(
+        "{USERNAME}{TAB}{PASSWORD}{DELAY 500}{ENTER}",
+        {
+            "{USERNAME}": username,
+            "{PASSWORD}": password,
+        },
+    )
+```
+
+## Public API
+
+### `KeePassFunctions(db_path: str, with_gui: bool = False)`
+
+Create the wrapper. The database is opened only when the instance is used in a
+`with` block.
+
+### `get_credentials(entry_title: str, return_entry: bool = False)`
+
+Return credentials for the first exact-title match.
+
+- `return_entry=False`: returns `(username, password)`
+- `return_entry=True`: returns the full `Entry`
+
+Raises `ValueError` if no matching entry is found.
+
+### `use_KeePass_sequence(kp_entry: str) -> None`
+
+Load the entry by exact title and execute its stored AutoType sequence.
+
+Raises `ValueError` if the entry is missing or if no AutoType sequence is set.
+
+### `entry_exists(title: str) -> bool`
+
+Return `True` if at least one exact-title match exists.
+
+### `get_entry_count() -> int`
+
+Return the total number of entries in the open database.
+
+### `validate_autotype_available(entry_title: str) -> bool`
+
+Return whether the first exact-title match has a non-empty AutoType sequence.
+
+### `send_autotype_sequence(sequence: str, replacements: dict) -> None`
+
+Resolve placeholders in a sequence and send the resulting key events to the
+active window.
+
+Supported token categories include:
+
+- Placeholder replacements such as `{USERNAME}` and `{PASSWORD}`
+- Special keys such as `{ENTER}`, `{TAB}`, and function keys
+- Modifier keys such as `{CTRL}` and `{SHIFT}`
+- Delays such as `{DELAY 500}`
+- Virtual keys such as `{VKEY 0D}`
+
+## Restricted Proxy
+
+The `kp` property exposes a restricted proxy rather than the raw `PyKeePass`
+instance.
+
+```python
+from keepassfunctions.keepassfunctions import KeePassFunctions
+
+db_path = r"C:\Passwords.kdbx"
+
+with KeePassFunctions(db_path=db_path, with_gui=False) as kp:
+    count = kp.kp.get_entry_count()
+    exists = kp.kp.validate_entry_exists("My Entry")
+    entries = kp.kp.find_entries_by_title("My Entry", first=True)
+```
+
+The proxy only exposes:
+
+- `find_entries_by_title()`
+- `get_entry_count()`
+- `validate_entry_exists()`
+
+## Demo Script
+
+The repository includes a demo script with both non-interactive and interactive
+usage modes.
+
+```bash
+python demo.py --interactive
+python demo.py --interactive --gui
+python demo.py --db C:\Passwords.kdbx --entry "My Entry" --get-credentials
+python demo.py --db C:\Passwords.kdbx --entry "My Entry" --get-full-entry
+python demo.py --db C:\Passwords.kdbx --entry "My Entry" --autotype
+```
+
+## Usage Notes
+
+- Use `KeePassFunctions` inside a `with` block. Public operations are designed
+  around an active context manager.
+- Entry lookup is based on exact title matches.
+- AutoType sends keystrokes to the currently focused window, so make sure the
+  correct target window is active before running it.
+- Cleanup is best-effort. Sensitive values are cleared where practical, but
+  memory handling still depends on Python and the operating system.
 
 ## Error Handling
 
-The library provides comprehensive error handling:
+Typical exceptions include:
 
-```python
-try:
-    with KeePassFunctions("nonexistent.kdbx") as kp:
-        username, password = kp.get_credentials("My Entry")
-except FileNotFoundError:
-    print("Database file not found")
-except ValueError as e:
-    print(f"Entry not found: {e}")
-except RuntimeError as e:
-    print(f"Context manager error: {e}")
-```
-
-## Examples
-
-### Complete Login Automation
-
-```python
-from keepassfunctions import KeePassFunctions
-
-def auto_login(entry_name: str, db_path: str = "~/Pwd_Db.kdbx"):
-    """Automatically log in using KeePass entry."""
-    try:
-        with KeePassFunctions(db_path, with_gui=True) as kp:
-            if kp.validate_autotype_available(entry_name):
-                print(f"Executing AutoType for: {entry_name}")
-                kp.use_KeePass_sequence(entry_name)
-            else:
-                print("No AutoType sequence available")
-                username, password = kp.get_credentials(entry_name)
-                print(f"Retrieved credentials for: {username}")
-                
-    except Exception as e:
-        print(f"Error: {e}")
-
-# Usage
-auto_login("Gmail Account")
-```
-
-### Database Statistics
-
-```python
-with KeePassFunctions("~/Pwd_Db.kdbx") as kp:
-    total_entries = kp.get_entry_count()
-    print(f"Database contains {total_entries} entries")
-    
-    # Check specific entries
-    entries_to_check = ["Gmail", "GitHub", "Bank Account"]
-    for entry in entries_to_check:
-        if kp.entry_exists(entry):
-            has_autotype = kp.validate_autotype_available(entry)
-            print(f"✓ {entry} (AutoType: {'Yes' if has_autotype else 'No'})")
-        else:
-            print(f"✗ {entry} (Not found)")
-```
-
-## Security Notice
-
-- **Window focus:** AutoType sends keystrokes to the currently focused window - ensure correct window is active
-- **Trusted environment:** Use only in secure, trusted environments
-- **Password visibility:** Be aware that AutoType sequences are visible as they're typed
-- **Memory security:** While passwords are cleared from memory, complete security depends on your system's memory management
-
-## License
-
-MIT License - See LICENSE file for details.
-
-## Author
-
-**Smorkster**  
-GitHub: [https://github.com/Smorkster/keepassfunctions](https://github.com/Smorkster/keepassfunctions)
+- `FileNotFoundError` for an invalid database path
+- `RuntimeError` when methods are used outside a context manager
+- `ValueError` when an entry cannot be found or an AutoType sequence is missing
 
 ## Version History
 
-- **v2.0** - Major security improvements, context manager support, secure proxy pattern
-- **v1.x** - Initial implementation
+- `2.1.0`: Refined the wrapper API, updated dependency metadata, and refreshed the demo scripts
+- `2.0`: Added the secure proxy pattern and context-manager based access
+
+## License
+
+MIT License. See `LICENSE`.
